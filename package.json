@@ -1,0 +1,46 @@
+{
+  "name": "xfund-oracle",
+  "version": "0.0.1",
+  "description": "xFUND Oracle - DB API, Tx validator & Signer",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint './src/**/*.js'",
+    "generate": "node src/daemons/generateEmissions.js",
+    "upval": "node src/daemons/updateValset.js",
+    "dev": "nodemon --ignore './src/dev_scripts/' --exec babel-node -- src",
+    "build": "rimraf dist && babel src -d dist",
+    "start": "node dist"
+  },
+  "author": "Codegnosis",
+  "license": "MIT",
+  "dependencies": {
+    "@tendermint/belt": "^0.3.0",
+    "bech32": "^1.1.4",
+    "bn.js": "^5.1.3",
+    "body-parser": "^1.19.0",
+    "cors": "^2.8.5",
+    "create-hash": "^1.2.0",
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "jsonwebtoken": "^8.5.1",
+    "node-fetch": "^2.6.0",
+    "pg": "^8.3.3",
+    "sequelize": "^6.3.4",
+    "web3": "^1.2.11"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.10.4",
+    "@babel/core": "^7.10.4",
+    "@babel/node": "^7.10.4",
+    "eslint": "^7.8.0",
+    "eslint-config-airbnb-base": "^14.0.0",
+    "eslint-config-prettier": "^6.7.0",
+    "eslint-plugin-import": "^2.19.1",
+    "eslint-plugin-jest": "^23.1.1",
+    "eslint-plugin-prettier": "^3.1.1",
+    "nodemon": "^2.0.4",
+    "prettier": "^2.1.1",
+    "rimraf": "^3.0.2"
+  }
+}
