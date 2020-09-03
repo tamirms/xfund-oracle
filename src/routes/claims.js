@@ -32,7 +32,7 @@ const {
 } = require("../common/utils/constants")
 const { jwtiseTicket, jwtiseMemo, checkBech32Address } = require("../crypto/utils")
 
-const { xFundSigDomain, xFundSigTxData, xFundSigDomainData } = require("../common/utils/constants")
+const { xFundSigDomain, xFundSigTxData, xFundSigDomainData, TICKET_CLAIM_STATUS } = require("../common/utils/constants")
 
 const { JWT_SHARED_SECRET } = process.env
 
@@ -233,11 +233,17 @@ router.post("/memo", async (req, res) => {
   }
 })
 
-const ticketSuccessBody = (result, ticket, amount, nonce, ethAddr, generated) => {
+const ticketSuccessBody = (result, ticket, amount, nonce, ethAddr, claimStatus, ethTx) => {
   const retRes = { ...result }
   const resultBody = {}
-  resultBody.claim_ticket = jwtiseTicket(ticket, amount, nonce, ethAddr)
-  resultBody.generated = generated
+  if (claimStatus === TICKET_CLAIM_STATUS.CLAIMED) {
+    resultBody.claim_ticket = ""
+  } else {
+    resultBody.claim_ticket = jwtiseTicket(ticket, amount, nonce, ethAddr)
+  }
+
+  resultBody.claim_status = claimStatus
+  resultBody.eth_tx = ethTx
 
   retRes.success = true
   retRes.status = STATUS_CODES.OK
@@ -309,7 +315,8 @@ const processTicket = async (payload) => {
       ticketExists.amount,
       ticketExists.nonce,
       ticketExists.ethAddress,
-      false,
+      ticketExists.claimStatus,
+      ticketExists.ethereumTx,
     )
   }
 
@@ -385,7 +392,15 @@ const processTicket = async (payload) => {
 
   await Promise.all(dbTasks)
 
-  return ticketSuccessBody(result, claimTicket, totalClaim, parsedNonce, ethAddr, true)
+  return ticketSuccessBody(
+    result,
+    claimTicket,
+    totalClaim,
+    parsedNonce,
+    ethAddr,
+    TICKET_CLAIM_STATUS.ISSUED,
+    "",
+  )
 }
 
 router.post("/ticket", async (req, res) => {
