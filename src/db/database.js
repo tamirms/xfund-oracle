@@ -108,11 +108,29 @@ const ClaimTickets = database.define(
   },
 )
 
+const MemoKeys = database.define(
+  "memoKeys",
+  {
+    memoKey: { type: Sequelize.STRING, allowNull: false },
+  },
+  {
+    indexes: [
+      {
+        unique: true,
+        fields: ["validatorId"],
+      },
+    ],
+  },
+)
+
 Validators.hasMany(Emissions)
 Emissions.belongsTo(Validators)
 
 Validators.hasMany(ClaimTickets)
 ClaimTickets.belongsTo(Validators)
+
+Validators.hasOne(MemoKeys)
+MemoKeys.belongsTo(Validators)
 
 ClaimTickets.hasMany(Emissions)
 Emissions.belongsTo(ClaimTickets)
@@ -120,6 +138,7 @@ Emissions.belongsTo(ClaimTickets)
 module.exports = {
   ClaimTickets,
   Emissions,
+  MemoKeys,
   Validators,
   database,
 }

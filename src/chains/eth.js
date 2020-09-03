@@ -2,7 +2,7 @@ require("dotenv").config()
 const BN = require("bn.js")
 const Web3 = require("web3")
 
-const { ETHEREUM_PKEY, ETH_RPC } = process.env
+const { ETHEREUM_PKEY, ETH_RPC, XFUND_CONTRACT_ADDRESS } = process.env
 const web3 = new Web3(Web3.givenProvider || ETH_RPC)
 
 const generateTicketMsg = (claimantAddr, amount, nonce) =>
@@ -10,6 +10,7 @@ const generateTicketMsg = (claimantAddr, amount, nonce) =>
     { type: "address", value: claimantAddr },
     { type: "uint256", value: amount.toNumber() },
     { type: "uint256", value: nonce },
+    { type: "address", value: Web3.utils.toChecksumAddress(XFUND_CONTRACT_ADDRESS) },
   )
 
 const generateClaimTicket = async (addr, amount, nonce) => {

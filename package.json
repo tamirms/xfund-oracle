@@ -22,11 +22,13 @@
     "cors": "^2.8.5",
     "create-hash": "^1.2.0",
     "dotenv": "^8.2.0",
+    "eth-sig-util": "^2.5.3",
     "express": "^4.17.1",
     "jsonwebtoken": "^8.5.1",
     "node-fetch": "^2.6.0",
     "pg": "^8.3.3",
     "sequelize": "^6.3.4",
+    "uuid": "^8.3.0",
     "web3": "^1.2.11"
   },
   "devDependencies": {
