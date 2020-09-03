@@ -2,6 +2,7 @@ require("dotenv").config()
 const { Op } = require("sequelize")
 const { getValidators } = require("../../chains/mainchain")
 const { Validators } = require("../database")
+const { insertMemoKey } = require("../memoKeys/update")
 
 const removeValFromCurrentSet = async (valId) => {
   await Validators.update(
@@ -35,7 +36,7 @@ const updateValidator = async (valId, val) => {
 }
 
 const insertValidator = async (val) => {
-  await Validators.create({
+  const insRes = await Validators.create({
     moniker: val.moniker,
     operatorAddress: val.operatorAddress,
     selfDelegateAddress: val.selfDelegateAddress,
@@ -46,6 +47,8 @@ const insertValidator = async (val) => {
     tokens: val.tokens,
     isInSet: true,
   })
+
+  await insertMemoKey(insRes.id)
 }
 
 const updateCurrentValidatorSet = async (currentValidators) => {

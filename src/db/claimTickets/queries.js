@@ -27,6 +27,7 @@ const getClaimTicketByMainchainTxAndEthAddr = async (mainchainTx, ethAddress) =>
   const result = await ClaimTickets.findOne({
     attributes: [
       "id",
+      "validatorId",
       "ethAddress",
       "amount",
       "nonce",
