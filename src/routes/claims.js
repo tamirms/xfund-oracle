@@ -1,6 +1,8 @@
 require("dotenv").config()
 const express = require("express")
+const sigUtil = require("eth-sig-util")
 const jwt = require("jsonwebtoken")
+const Web3 = require("web3")
 const { getUnclaimedEmissionsForValidatorId } = require("../db/emissions/queries")
 const {
   getClaimTicketByTicket,
@@ -16,6 +18,8 @@ const {
 const { insertClaimTicket, updateClaimTicketWithEthTx } = require("../db/claimTickets/update")
 const { getBySelfDelegatorAddress } = require("../db/validators/queries")
 const { updateEmissionWithClaimTicketId } = require("../db/emissions/update")
+const { updateMemoKey } = require("../db/memoKeys/update")
+const { getMemoKey } = require("../db/memoKeys/queries")
 const { getTx } = require("../chains/mainchain")
 const { validateClaimTx } = require("../tx/claim")
 const { generateClaimTicket } = require("../chains/eth")
@@ -26,7 +30,9 @@ const {
   isValidClaimStatus,
   claimStatusLookup,
 } = require("../common/utils/constants")
-const { jwtiseTicket, jwtiseMemo } = require("../crypto/utils")
+const { jwtiseTicket, jwtiseMemo, checkBech32Address } = require("../crypto/utils")
+
+const { xFundSigDomain, xFundSigTxData, xFundSigDomainData } = require("../common/utils/constants")
 
 const { JWT_SHARED_SECRET } = process.env
 
@@ -165,6 +171,18 @@ router.get("/address/:address/mctx/:mctx", async (req, res) => {
   res.json(result)
 })
 
+const checkMemoPayload = (ethAddress, selfDelegatorAddress) => {
+  if (!ethAddress || !selfDelegatorAddress) {
+    throw new Error("missing ethereum address or self delegator address")
+  }
+  if (!Web3.utils.isAddress(ethAddress)) {
+    throw new Error(`invalid ethereum address: ${ethAddress}`)
+  }
+  if (!checkBech32Address(selfDelegatorAddress, "und")) {
+    throw new Error(`invalid self delegator address: ${selfDelegatorAddress}`)
+  }
+}
+
 const processMemo = async (payload) => {
   const result = { ...DEFAULT_JSON_RESPONSE }
 
@@ -174,6 +192,7 @@ const processMemo = async (payload) => {
     const decodedPayload = jwt.verify(payload, JWT_SHARED_SECRET)
     ethAddress = decodedPayload.eth_address
     selfDelegatorAddress = decodedPayload.self_delegate_address
+    checkMemoPayload(ethAddress, selfDelegatorAddress)
   } catch (err) {
     result.status = STATUS_CODES.ERR.JWT
     result.error = err.message
@@ -187,8 +206,10 @@ const processMemo = async (payload) => {
     return result
   }
 
+  const memoKey = await getMemoKey(dbVal.id)
+
   const res = {
-    memo: jwtiseMemo(ethAddress, selfDelegatorAddress),
+    memo: jwtiseMemo(ethAddress, selfDelegatorAddress, memoKey.memoKey),
   }
 
   result.success = true
@@ -230,10 +251,14 @@ const processTicket = async (payload) => {
 
   let txHash
   let nonce
+  let ethSig
+  let ethSigNonce
   try {
     const decodedPayload = jwt.verify(payload, JWT_SHARED_SECRET)
     txHash = decodedPayload.tx_hash
     nonce = decodedPayload.nonce
+    ethSigNonce = decodedPayload.sig_nonce
+    ethSig = decodedPayload.sig
   } catch (err) {
     result.status = STATUS_CODES.ERR.JWT
     result.error = err.message
@@ -250,7 +275,33 @@ const processTicket = async (payload) => {
 
   const ticketExists = await getClaimTicketByMainchainTx(txHash)
 
+  // Todo - check if issued or claimed, and return data accordingly
   if (ticketExists) {
+    const domain = [...xFundSigDomain]
+    const txData = [...xFundSigTxData]
+    const domainData = { ...xFundSigDomainData }
+    const message = {
+      tx_hash: txHash,
+      sig_nonce: ethSigNonce,
+    }
+    const msgParams = JSON.stringify({
+      types: {
+        EIP712Domain: domain,
+        TxData: txData,
+      },
+      domain: domainData,
+      primaryType: "TxData",
+      message,
+    })
+
+    const recovered = sigUtil.recoverTypedSignature({ data: JSON.parse(msgParams), sig: ethSig })
+
+    if (Web3.utils.toChecksumAddress(ticketExists.ethAddress) !== Web3.utils.toChecksumAddress(recovered)) {
+      result.status = STATUS_CODES.ERR.ETH_ADDR
+      result.error = `Eth Sig Error: eth address "${ticketExists.ethAddress}" does not match recovered signature address "${recovered}"`
+      return result
+    }
+
     const ticketJson = JSON.parse(ticketExists.ticket)
     return ticketSuccessBody(
       result,
@@ -263,7 +314,7 @@ const processTicket = async (payload) => {
   }
 
   const tx = await getTx(txHash)
-  const txRes = await validateClaimTx(tx)
+  const txRes = await validateClaimTx(tx, ethSigNonce, ethSig)
 
   // check Tx validation passed
   if (txRes.status !== STATUS_CODES.OK) {
@@ -371,6 +422,8 @@ const processEthTx = async (payload) => {
     }
 
     await updateClaimTicketWithEthTx(claimTicket.id, ethTx)
+
+    await updateMemoKey(claimTicket.validatorId)
 
     result.status = STATUS_CODES.OK
     result.success = true

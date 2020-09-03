@@ -1,13 +1,15 @@
 require("dotenv").config()
+const sigUtil = require("eth-sig-util")
 const Web3 = require("web3")
 const jwt = require("jsonwebtoken")
 const { pubKeyToBech32 } = require("../crypto/utils")
 const { Validators } = require("../db/database")
 const { STATUS_CODES } = require("../common/utils/constants")
+const { getMemoKey } = require("../db/memoKeys/queries")
 
-const { JWT_ORACLE_SECRET } = process.env
+const { xFundSigDomain, xFundSigTxData, xFundSigDomainData } = require("../common/utils/constants")
 
-const validateClaimTx = async (tx) => {
+const validateClaimTx = async (tx, ethSigNonce, ethSig) => {
   const res = {
     status: STATUS_CODES.ERR.UNSPECIFIED,
     errorMsg: "",
@@ -73,7 +75,13 @@ const validateClaimTx = async (tx) => {
   let decodedMemo
   let ethAddr
   try {
-    const passPhrase = JWT_ORACLE_SECRET + sentAddrFromSig
+    const memoKey = await getMemoKey(valDbResFromSig.id)
+    if (!memoKey) {
+      res.status = STATUS_CODES.ERR.DB_NOT_FOUND
+      res.errorMsg = "memo key error"
+      return res
+    }
+    const passPhrase = memoKey.memoKey + sentAddrFromSig
     decodedMemo = jwt.verify(tx.tx.value.memo, passPhrase)
     ethAddr = decodedMemo.eth
   } catch (err) {
@@ -92,6 +100,32 @@ const validateClaimTx = async (tx) => {
   if (!Web3.utils.isAddress(ethAddr)) {
     res.status = STATUS_CODES.ERR.ETH_ADDR
     res.errorMsg = `Eth Address Error: eth address "${ethAddr}" is not a valid Eth wallet address`
+    return res
+  }
+
+  // 6. check the signature data from the POST request
+  const domain = [...xFundSigDomain]
+  const txData = [...xFundSigTxData]
+  const domainData = { ...xFundSigDomainData }
+  const message = {
+    tx_hash: tx.txhash,
+    sig_nonce: ethSigNonce,
+  }
+  const msgParams = JSON.stringify({
+    types: {
+      EIP712Domain: domain,
+      TxData: txData,
+    },
+    domain: domainData,
+    primaryType: "TxData",
+    message,
+  })
+
+  const recovered = sigUtil.recoverTypedSignature({ data: JSON.parse(msgParams), sig: ethSig })
+
+  if (Web3.utils.toChecksumAddress(ethAddr) !== Web3.utils.toChecksumAddress(recovered)) {
+    res.status = STATUS_CODES.ERR.ETH_ADDR
+    res.errorMsg = `Eth Sig Error: eth address "${ethAddr}" does not match recovered signature address "${recovered}"`
     return res
   }
 
