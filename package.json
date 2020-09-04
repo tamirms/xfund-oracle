@@ -6,8 +6,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint './src/**/*.js'",
-    "generate": "node src/daemons/generateEmissions.js",
-    "upval": "node src/daemons/updateValset.js",
+    "generate-dev": "node src/daemons/generateEmissions.js",
+    "upval-dev": "node src/daemons/updateValset.js",
+    "generate": "node dist/daemons/generateEmissions.js",
+    "upval": "node dist/daemons/updateValset.js",
     "dev": "nodemon --ignore './src/dev_scripts/' --exec babel-node -- src",
     "build": "rimraf dist && babel src -d dist",
     "start": "node dist"
