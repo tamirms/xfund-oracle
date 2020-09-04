@@ -86,7 +86,7 @@ const validateClaimTx = async (tx, ethSigNonce, ethSig) => {
     ethAddr = decodedMemo.eth
   } catch (err) {
     res.status = STATUS_CODES.ERR.JWT
-    res.errorMsg = err.message
+    res.errorMsg = `failed to decode memo in tx ${tx.txhash}: ${err.message}`
     return res
   }
 
