@@ -10,7 +10,7 @@ const generateTicketMsg = (claimantAddr, amount, nonce) =>
     { type: "address", value: claimantAddr },
     { type: "uint256", value: amount.toNumber() },
     { type: "uint256", value: nonce },
-    { type: "string", value: XFUND_CONTRACT_SALT },
+    { type: "bytes32", value: XFUND_CONTRACT_SALT },
     { type: "address", value: Web3.utils.toChecksumAddress(XFUND_CONTRACT_ADDRESS) },
   )
 

@@ -44,6 +44,7 @@ const Emissions = database.define(
   "emissions",
   {
     amount: { type: Sequelize.INTEGER, allowNull: true, defaultValue: 1 },
+    beaconTimestampId: { type: Sequelize.INTEGER, allowNull: true, defaultValue: 0 },
   },
   {
     indexes: [
@@ -67,12 +68,13 @@ const ClaimTickets = database.define(
   "claimTickets",
   {
     amount: { type: Sequelize.INTEGER, allowNull: false },
-    ticket: { type: Sequelize.TEXT, allowNull: false },
+    ticket: { type: Sequelize.TEXT, allowNull: true },
     ethAddress: { type: Sequelize.STRING, allowNull: false },
     nonce: { type: Sequelize.INTEGER, allowNull: false },
     claimStatus: { type: Sequelize.INTEGER, allowNull: true, defaultValue: 0 },
     mainchainTx: { type: Sequelize.STRING, allowNull: false },
     ethereumTx: { type: Sequelize.STRING, allowNull: true },
+    beaconTimestampId: { type: Sequelize.INTEGER, allowNull: true, defaultValue: 0 },
   },
   {
     indexes: [
@@ -85,7 +87,7 @@ const ClaimTickets = database.define(
         fields: ["claimStatus"],
       },
       {
-        unique: false,
+        unique: true,
         fields: ["mainchainTx"],
       },
       {

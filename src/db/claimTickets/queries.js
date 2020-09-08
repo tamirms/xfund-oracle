@@ -47,6 +47,7 @@ const getClaimTicketByMainchainTxAndEthAddr = async (mainchainTx, ethAddress) =>
 const getClaimTicketByMainchainTx = async (mainchainTx) => {
   const result = await ClaimTickets.findOne({
     attributes: [
+      "id",
       "ethAddress",
       "amount",
       "nonce",
@@ -61,6 +62,14 @@ const getClaimTicketByMainchainTx = async (mainchainTx) => {
     },
   })
   return result
+}
+
+const getClaimTicketById = async (claimTicketId) => {
+  return ClaimTickets.findOne({
+    where: {
+      id: claimTicketId,
+    },
+  })
 }
 
 const getClaimTicketByEthAddressAndNonce = async (ethAddress, nonce) => {
@@ -216,4 +225,5 @@ module.exports = {
   getClaimTicketsByStatus,
   getClaimTicketByMainchainTx,
   getClaimTicketsByAddressAndMcTx,
+  getClaimTicketById,
 }
