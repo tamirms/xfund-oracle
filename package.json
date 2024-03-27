@@ -25,7 +25,7 @@
     "create-hash": "^1.2.0",
     "dotenv": "^8.2.0",
     "eth-sig-util": "^2.5.3",
-    "express": "^4.17.1",
+    "express": "^4.19.2",
     "jsonwebtoken": "^8.5.1",
     "node-fetch": "^2.6.0",
     "pg": "^8.3.3",
